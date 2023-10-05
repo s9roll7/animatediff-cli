@@ -7,28 +7,41 @@ from typing import Annotated, Optional
 
 import torch
 import typer
-from diffusers.utils.logging import \
-    set_verbosity_error as set_diffusers_verbosity_error
+from diffusers.utils.logging import set_verbosity_error as set_diffusers_verbosity_error
 from rich.logging import RichHandler
 
 from animatediff import __version__, console, get_dir
-from animatediff.generate import (controlnet_preprocess, create_pipeline,
-                                  create_us_pipeline, ip_adapter_preprocess,
-                                  load_controlnet_models, run_inference,
-                                  run_upscale, save_output,
-                                  unload_controlnet_models)
+from animatediff.generate import (
+    controlnet_preprocess,
+    create_pipeline,
+    create_us_pipeline,
+    ip_adapter_preprocess,
+    load_controlnet_models,
+    run_inference,
+    run_upscale,
+    save_output,
+    unload_controlnet_models,
+)
 from animatediff.pipelines import AnimationPipeline, load_text_embeddings
-from animatediff.settings import (CKPT_EXTENSIONS, InferenceConfig,
-                                  ModelConfig, get_infer_config,
-                                  get_model_config)
+from animatediff.settings import (
+    CKPT_EXTENSIONS,
+    InferenceConfig,
+    ModelConfig,
+    get_infer_config,
+    get_model_config,
+)
 from animatediff.utils.civitai2config import generate_config_from_civitai_info
-from animatediff.utils.model import (checkpoint_to_pipeline,
-                                     fix_checkpoint_if_needed, get_base_model)
+from animatediff.utils.model import checkpoint_to_pipeline, fix_checkpoint_if_needed, get_base_model
 from animatediff.utils.pipeline import get_context_params, send_to_device
-from animatediff.utils.util import (extract_frames, is_v2_motion_module,
-                                    path_from_cwd, save_frames, save_imgs,
-                                    save_video,
-                                    set_tensor_interpolation_method)
+from animatediff.utils.util import (
+    extract_frames,
+    is_v2_motion_module,
+    path_from_cwd,
+    save_frames,
+    save_imgs,
+    save_video,
+    set_tensor_interpolation_method,
+)
 from animatediff.utils.wild_card import replace_wild_card
 
 cli: typer.Typer = typer.Typer(
@@ -44,12 +57,14 @@ pipeline_dir = data_dir.joinpath("models/huggingface")
 
 try:
     import google.colab
+
     IN_COLAB = True
 except:
     IN_COLAB = False
 
 if IN_COLAB:
     import sys
+
     logging.basicConfig(
         level=logging.INFO,
         stream=sys.stdout,
@@ -85,8 +100,6 @@ from animatediff.stylize import stylize
 cli.add_typer(stylize, name="stylize")
 
 
-
-
 # mildly cursed globals to allow for reuse of the pipeline if we're being called as a module
 g_pipeline: Optional[AnimationPipeline] = None
 last_model_path: Optional[Path] = None
@@ -97,10 +110,12 @@ def version_callback(value: bool):
         console.print(f"AnimateDiff v{__version__}")
         raise typer.Exit()
 
+
 def get_random():
     import sys
 
     import numpy as np
+
     return int(np.random.randint(sys.maxsize, dtype=np.int64))
 
 
@@ -290,13 +305,13 @@ def generate(
     is_v2 = is_v2_motion_module(data_dir.joinpath(model_config.motion_module))
     infer_config: InferenceConfig = get_infer_config(is_v2)
 
-    set_tensor_interpolation_method( model_config.tensor_interpolation_slerp )
+    set_tensor_interpolation_method(model_config.tensor_interpolation_slerp)
 
     # set sane defaults for context, overlap, and stride if not supplied
     context, overlap, stride = get_context_params(length, context, overlap, stride)
 
     if (not is_v2) and (context > 24):
-        logger.warning( "For motion module v1, the maximum value of context is 24. Set to 24" )
+        logger.warning("For motion module v1, the maximum value of context is 24. Set to 24")
         context = 24
 
     # turn the device string into a torch.device
@@ -313,7 +328,9 @@ def generate(
     save_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Will save outputs to ./{path_from_cwd(save_dir)}")
 
-    controlnet_image_map, controlnet_type_map, controlnet_ref_map = controlnet_preprocess(model_config.controlnet_map, width, height, length, save_dir, device)
+    controlnet_image_map, controlnet_type_map, controlnet_ref_map = controlnet_preprocess(
+        model_config.controlnet_map, width, height, length, save_dir, device
+    )
     ip_adapter_map = ip_adapter_preprocess(model_config.ip_adapter_map, width, height, length, save_dir)
 
     # beware the pipeline
@@ -361,7 +378,7 @@ def generate(
     if model_config.tail_prompt:
         model_config.tail_prompt = replace_wild_card(model_config.tail_prompt, wild_card_dir)
 
-    model_config.prompt_fixed_ratio = max(min(1.0, model_config.prompt_fixed_ratio),0)
+    model_config.prompt_fixed_ratio = max(min(1.0, model_config.prompt_fixed_ratio), 0)
 
     # save config to output directory
     logger.info("Saving prompt config to output directory")
@@ -400,18 +417,17 @@ def generate(
                     if model_config.tail_prompt:
                         pr = pr + "," + model_config.tail_prompt
 
-                    prompt_map[int(k)]=pr
+                    prompt_map[int(k)] = pr
 
             prompt_map = dict(sorted(prompt_map.items()))
             key_list = list(prompt_map.keys())
-#            for k0,k1 in zip(key_list,key_list[1:]+key_list[0:1]):
-            for k0,k1 in zip(key_list,key_list[1:]+[length]):
-                k05 = k0 + round((k1-k0) * model_config.prompt_fixed_ratio)
+            #            for k0,k1 in zip(key_list,key_list[1:]+key_list[0:1]):
+            for k0, k1 in zip(key_list, key_list[1:] + [length]):
+                k05 = k0 + round((k1 - k0) * model_config.prompt_fixed_ratio)
                 if k05 == k1:
                     k05 -= 1
                 if k05 != k0:
                     prompt_map[k05] = prompt_map[k0]
-
 
             output = run_inference(
                 pipeline=g_pipeline,
@@ -436,8 +452,8 @@ def generate(
                 controlnet_ref_map=controlnet_ref_map,
                 no_frames=no_frames,
                 ip_adapter_map=ip_adapter_map,
-                output_map = model_config.output,
-                is_single_prompt_mode=model_config.is_single_prompt_mode
+                output_map=model_config.output,
+                is_single_prompt_mode=model_config.is_single_prompt_mode,
             )
             outputs.append(output)
             torch.cuda.empty_cache()
@@ -446,7 +462,6 @@ def generate(
             gen_num += 1
 
     unload_controlnet_models(pipe=g_pipeline)
-
 
     logger.info("Generation complete!")
     if save_merged:
@@ -458,6 +473,7 @@ def generate(
     cli.info
 
     return save_dir
+
 
 @cli.command()
 def tile_upscale(
@@ -571,10 +587,12 @@ def tile_upscale(
     config_path = config_path.absolute()
     logger.info(f"Using generation config: {path_from_cwd(config_path)}")
     model_config: ModelConfig = get_model_config(config_path)
-    infer_config: InferenceConfig = get_infer_config(is_v2_motion_module(data_dir.joinpath(model_config.motion_module)))
+    infer_config: InferenceConfig = get_infer_config(
+        is_v2_motion_module(data_dir.joinpath(model_config.motion_module))
+    )
     frames_dir = frames_dir.absolute()
 
-    set_tensor_interpolation_method( model_config.tensor_interpolation_slerp )
+    set_tensor_interpolation_method(model_config.tensor_interpolation_slerp)
 
     # turn the device string into a torch.device
     device: torch.device = torch.device(device)
@@ -585,7 +603,6 @@ def tile_upscale(
     save_dir = out_dir.joinpath(f"{time_str}-{model_config.save_name}")
     save_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Will save outputs to ./{path_from_cwd(save_dir)}")
-
 
     if "controlnet_tile" not in model_config.upscale_config:
         model_config.upscale_config["controlnet_tile"] = {
@@ -602,15 +619,33 @@ def tile_upscale(
     use_controlnet_ip2p = False
 
     if model_config.upscale_config:
-        use_controlnet_ref = model_config.upscale_config["controlnet_ref"]["enable"] if "controlnet_ref" in model_config.upscale_config else False
-        use_controlnet_tile = model_config.upscale_config["controlnet_tile"]["enable"] if "controlnet_tile" in model_config.upscale_config else False
-        use_controlnet_line_anime = model_config.upscale_config["controlnet_line_anime"]["enable"] if "controlnet_line_anime" in model_config.upscale_config else False
-        use_controlnet_ip2p = model_config.upscale_config["controlnet_ip2p"]["enable"] if "controlnet_ip2p" in model_config.upscale_config else False
+        use_controlnet_ref = (
+            model_config.upscale_config["controlnet_ref"]["enable"]
+            if "controlnet_ref" in model_config.upscale_config
+            else False
+        )
+        use_controlnet_tile = (
+            model_config.upscale_config["controlnet_tile"]["enable"]
+            if "controlnet_tile" in model_config.upscale_config
+            else False
+        )
+        use_controlnet_line_anime = (
+            model_config.upscale_config["controlnet_line_anime"]["enable"]
+            if "controlnet_line_anime" in model_config.upscale_config
+            else False
+        )
+        use_controlnet_ip2p = (
+            model_config.upscale_config["controlnet_ip2p"]["enable"]
+            if "controlnet_ip2p" in model_config.upscale_config
+            else False
+        )
 
     if use_controlnet_tile == False:
-        if use_controlnet_line_anime==False:
+        if use_controlnet_line_anime == False:
             if use_controlnet_ip2p == False:
-                raise ValueError(f"At least one of them should be enabled. {use_controlnet_tile=}, {use_controlnet_line_anime=}, {use_controlnet_ip2p=}")
+                raise ValueError(
+                    f"At least one of them should be enabled. {use_controlnet_tile=}, {use_controlnet_line_anime=}, {use_controlnet_ip2p=}"
+                )
 
     # beware the pipeline
     us_pipeline = create_us_pipeline(
@@ -623,7 +658,6 @@ def tile_upscale(
         use_controlnet_ip2p=use_controlnet_ip2p,
     )
 
-
     if us_pipeline.device == device:
         logger.info("Pipeline already on the correct device, skipping device transfer")
     else:
@@ -631,9 +665,7 @@ def tile_upscale(
             us_pipeline, device, freeze=True, force_half=force_half_vae, compile=model_config.compile
         )
 
-
-    model_config.result = { "original_frames": str(frames_dir) }
-
+    model_config.result = {"original_frames": str(frames_dir)}
 
     # save config to output directory
     logger.info("Saving prompt config to output directory")
@@ -648,7 +680,7 @@ def tile_upscale(
 
     gen_num = 0  # global generation index
 
-    org_images = sorted(glob.glob( os.path.join(frames_dir, "[0-9]*.png"), recursive=False))
+    org_images = sorted(glob.glob(os.path.join(frames_dir, "[0-9]*.png"), recursive=False))
     length = len(org_images)
 
     if model_config.prompt_map:
@@ -673,10 +705,9 @@ def tile_upscale(
                 if model_config.tail_prompt:
                     pr = pr + "," + model_config.tail_prompt
 
-                prompt_map[int(k)]=pr
+                prompt_map[int(k)] = pr
 
         if model_config.upscale_config:
-
             upscaled_output = run_upscale(
                 org_imgs=org_images,
                 pipeline=us_pipeline,
@@ -710,6 +741,7 @@ def tile_upscale(
     cli.info
 
     return save_dir
+
 
 @cli.command()
 def civitai2config(
@@ -754,7 +786,7 @@ def civitai2config(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Generate config files from: {lora_dir}")
-    generate_config_from_civitai_info(lora_dir,config_org,out_dir, lora_weight)
+    generate_config_from_civitai_info(lora_dir, config_org, out_dir, lora_weight)
     logger.info(f"saved at: {out_dir.absolute()}")
 
 
@@ -811,7 +843,6 @@ def fix_checkpoint(
     fix_checkpoint_if_needed(checkpoint, debug)
 
 
-
 @cli.command()
 def merge(
     checkpoint: Annotated[
@@ -855,7 +886,6 @@ def merge(
     logger.info("Done!")
 
 
-
 @cli.command(no_args_is_help=True)
 def refine(
     frames_dir: Annotated[
@@ -890,8 +920,8 @@ def refine(
         typer.Option(
             "--tile",
             "-t",
-            min= 0,
-            max= 1.0,
+            min=0,
+            max=1.0,
             help="controlnet_tile conditioning scale",
             rich_help_panel="Generation",
         ),
@@ -1028,16 +1058,16 @@ def refine(
         else:
             raise ValueError(f"config_path invalid.")
 
-    org_frames = sorted(glob.glob( os.path.join(frames_dir, "[0-9]*.png"), recursive=False))
-    W,H = Image.open(org_frames[0]).size
+    org_frames = sorted(glob.glob(os.path.join(frames_dir, "[0-9]*.png"), recursive=False))
+    W, H = Image.open(org_frames[0]).size
 
     if width == -1 and height == -1:
         width = W
         height = H
     elif width == -1:
-        width = int(height * W / H) //8 * 8
+        width = int(height * W / H) // 8 * 8
     elif height == -1:
-        height = int(width * H / W) //8 * 8
+        height = int(width * H / W) // 8 * 8
     else:
         pass
 
@@ -1062,7 +1092,6 @@ def refine(
     rife_img_dir = None
 
     for repeat_count in range(repeats):
-
         if interpolation_multiplier > 1:
             rife_img_dir = save_dir.joinpath(f"{repeat_count:02d}_rife_frame")
             rife_img_dir.mkdir(parents=True, exist_ok=True)
@@ -1073,43 +1102,63 @@ def refine(
             if model_config.output:
                 model_config.output["fps"] *= interpolation_multiplier
             if model_config.prompt_map:
-                model_config.prompt_map = { str(int(i)*interpolation_multiplier): model_config.prompt_map[i] for i in model_config.prompt_map }
+                model_config.prompt_map = {
+                    str(int(i) * interpolation_multiplier): model_config.prompt_map[i]
+                    for i in model_config.prompt_map
+                }
 
             frames_dir = rife_img_dir
 
-
         controlnet_img_dir = save_dir.joinpath(f"{repeat_count:02d}_controlnet_image")
 
-        for c in ["controlnet_canny","controlnet_depth","controlnet_inpaint","controlnet_ip2p","controlnet_lineart","controlnet_lineart_anime","controlnet_mlsd","controlnet_normalbae","controlnet_openpose","controlnet_scribble","controlnet_seg","controlnet_shuffle","controlnet_softedge","controlnet_tile"]:
+        for c in [
+            "controlnet_canny",
+            "controlnet_depth",
+            "controlnet_inpaint",
+            "controlnet_ip2p",
+            "controlnet_lineart",
+            "controlnet_lineart_anime",
+            "controlnet_mlsd",
+            "controlnet_normalbae",
+            "controlnet_openpose",
+            "controlnet_scribble",
+            "controlnet_seg",
+            "controlnet_shuffle",
+            "controlnet_softedge",
+            "controlnet_tile",
+        ]:
             c_dir = controlnet_img_dir.joinpath(c)
             c_dir.mkdir(parents=True, exist_ok=True)
 
         shutil.copytree(frames_dir, controlnet_img_dir.joinpath("controlnet_tile"), dirs_exist_ok=True)
 
-        model_config.controlnet_map["input_image_dir"] = os.path.relpath(controlnet_img_dir.absolute(), data_dir)
+        model_config.controlnet_map["input_image_dir"] = os.path.relpath(
+            controlnet_img_dir.absolute(), data_dir
+        )
         model_config.controlnet_map["is_loop"] = False
 
         if "controlnet_tile" in model_config.controlnet_map:
             model_config.controlnet_map["controlnet_tile"]["enable"] = True
             model_config.controlnet_map["controlnet_tile"]["control_scale_list"] = []
-            model_config.controlnet_map["controlnet_tile"]["controlnet_conditioning_scale"] = tile_conditioning_scale
+            model_config.controlnet_map["controlnet_tile"][
+                "controlnet_conditioning_scale"
+            ] = tile_conditioning_scale
 
         else:
             model_config.controlnet_map["controlnet_tile"] = {
                 "enable": True,
-                "use_preprocessor":True,
-                "guess_mode":False,
+                "use_preprocessor": True,
+                "guess_mode": False,
                 "controlnet_conditioning_scale": tile_conditioning_scale,
                 "control_guidance_start": 0.0,
                 "control_guidance_end": 1.0,
-                "control_scale_list":[]
+                "control_scale_list": [],
             }
 
         model_config.seed = [seeds[repeat_count]]
 
         config_path = save_dir.joinpath(f"{repeat_count:02d}_prompt.json")
         config_path.write_text(model_config.json(indent=4), encoding="utf-8")
-
 
         generated_dir = generate(
             config_path=config_path,
@@ -1131,19 +1180,17 @@ def refine(
 
         generated_dir = generated_dir.rename(generated_dir.parent / f"{time_str}_{repeat_count:02d}")
 
-
-        frames_dir = glob.glob( os.path.join(generated_dir, "00-[0-9]*"), recursive=False)[0]
-
+        frames_dir = glob.glob(os.path.join(generated_dir, "00-[0-9]*"), recursive=False)[0]
 
     if rife_img_dir:
-        frames = sorted(glob.glob( os.path.join(rife_img_dir, "[0-9]*.png"), recursive=False))
+        frames = sorted(glob.glob(os.path.join(rife_img_dir, "[0-9]*.png"), recursive=False))
         out_images = []
         for f in frames:
             out_images.append(Image.open(f))
 
         out_file = save_dir.joinpath(f"rife_only_for_comparison")
-        save_output(out_images,rife_img_dir,out_file,model_config.output,True,save_frames=None,save_video=None)
-
+        save_output(
+            out_images, rife_img_dir, out_file, model_config.output, True, save_frames=None, save_video=None
+        )
 
     logger.info(f"Refined results are output to {generated_dir}")
-
