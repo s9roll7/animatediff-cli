@@ -6,6 +6,10 @@ I added a experimental feature to animatediff-cli to change the prompt in the mi
 
 It seems to work surprisingly well!
 
+### Google Colab Notebook
+
+If you want to quickly try it without local installation using GPU, here is a [Colab Notebook](https://colab.research.google.com/drive/1ccByl2fUkMv632_7Zf2ePLSV_ZNjpkoE?usp=sharing&pli=1) to try with. 
+
 ### Example
 - [A command to automate video stylization has been added](https://github.com/s9roll7/animatediff-cli-prompt-travel#video-stylization).
 - Original / First generation result / Second generation(for upscaling) result
@@ -88,8 +92,9 @@ It seems to work surprisingly well!
 ### Installation(for windows)
 Same as the original animatediff-cli  
 [Python 3.10](https://www.python.org/) and git client must be installed  
-(A few days ago, PyTorch 2.1 was released, but it is safer to install the older version until things settle down.   
+(A few days ago, PyTorch 2.1 was released, but it is safer to install the older version until things settle down. PyTorch 2.1.0 works if not use xformers (can try install it from source if you want to use it).   
 [#87](https://github.com/s9roll7/animatediff-cli-prompt-travel/issues/87))
+
 ```sh
 git clone https://github.com/s9roll7/animatediff-cli-prompt-travel.git
 cd animatediff-cli
@@ -108,6 +113,7 @@ python -m pip install -e .[dwpose]
 ```
 (https://www.reddit.com/r/StableDiffusion/comments/157c0wl/working_animatediff_cli_windows_install/)
 
+[Video guide: Step by step installation for Windows and Linux](https://youtu.be/PkAVpvgeRyA?si=IjMx_S0Va0cEjHrq)
 
 ### How To Use
 Almost same as the original animatediff-cli, but with a slight change in config format.
