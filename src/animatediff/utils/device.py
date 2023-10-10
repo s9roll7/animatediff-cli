@@ -27,8 +27,8 @@ def supports_bfloat16(device: Union[str, torch.device]) -> bool:
         case "cpu":
             ret = False
         case "cuda":
-            with device:
-                ret = torch.cuda.is_bf16_supported()
+            #with device:
+            ret = torch.cuda.is_bf16_supported()
         case "xla":
             ret = True
         case "mps":

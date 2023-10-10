@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 import torch
-import torch._dynamo as dynamo
+#import torch._dynamo as dynamo
 from diffusers import StableDiffusionPipeline
 from einops._torch_specific import allow_ops_in_compiled_graph
 
@@ -10,7 +10,6 @@ from animatediff.utils.device import get_memory_format, get_model_dtypes
 from animatediff.utils.model import nop_train
 
 logger = logging.getLogger(__name__)
-
 
 def send_to_device(
     pipeline: StableDiffusionPipeline,
