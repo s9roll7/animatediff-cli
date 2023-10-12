@@ -1,3 +1,9 @@
+
+# Support AMD GPU 
+
+AMD GPUs (especially old generation cards) may not support Pytorch 2. However the original repo runs on Pytorch 2. I made this fork and tweek it so it is able to run on Pytorch 1.13. Tested on 6700XT. Please see videos on my [youtube channel](https://www.youtube.com/@tech-practice9805)
+
+
 # AnimateDiff prompt travel
 
 [AnimateDiff](https://github.com/guoyww/AnimateDiff) with prompt travel + [ControlNet](https://github.com/lllyasviel/ControlNet) + [IP-Adapter](https://github.com/tencent-ailab/IP-Adapter)
