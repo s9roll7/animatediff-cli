@@ -989,21 +989,34 @@ class AnimationPipeline(DiffusionPipeline, TextualInversionLoaderMixin):
 
 
 
-    def decode_latents(self, latents: torch.Tensor):
+    def decode_latents(self, latents: torch.Tensor, progress_bar: tqdm = None):
         video_length = latents.shape[2]
         latents = 1 / self.vae.config.scaling_factor * latents
         latents = rearrange(latents, "b c f h w -> (b f) c h w")
-        # video = self.vae.decode(latents).sample
         video = []
+
+        if progress_bar is not None:  # if we have a progress bar, we close it (rich doesn't support multiple progress bars)
+            task_id = progress_bar._prog.add_task('Decoding latents...', start=True, total=latents.shape[0])
+            remove_task = True
+        else:
+            progress_bar = self.progress_bar(total=latents.shape[0], desc="Decoding latents...")
+            task_id = progress_bar._task_id
+            remove_task = False
+
         for frame_idx in range(latents.shape[0]):
-            video.append(
-                self.vae.decode(latents[frame_idx : frame_idx + 1].to(self.vae.device, self.vae.dtype)).sample.cpu()
-            )
+            latent = latents[frame_idx : frame_idx + 1].to(self.vae.device, self.vae.dtype)
+            video.append(self.vae.decode(latent).sample.cpu())
+            progress_bar._prog.update(task_id, advance=1, refresh=True)
+
         video = torch.cat(video)
         video = rearrange(video, "(b f) c h w -> b c f h w", f=video_length)
         video = (video / 2 + 0.5).clamp(0, 1)
         # we always cast to float32 as this does not cause significant overhead and is compatible with bfloa16
         video = video.float().numpy()
+    
+        if remove_task:
+            progress_bar._prog.remove_task(task_id)
+
         return video
 
     def prepare_extra_step_kwargs(self, generator, eta):
@@ -2678,7 +2691,7 @@ class AnimationPipeline(DiffusionPipeline, TextualInversionLoaderMixin):
 
         # 7. Denoising loop
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
-        with self.progress_bar(total=total_steps) as progress_bar:
+        with self.progress_bar(total=len(timesteps), desc="Diffusing video...") as progress_bar:
             for i, t in enumerate(timesteps):
                 stopwatch_start()
 
@@ -3046,7 +3059,6 @@ class AnimationPipeline(DiffusionPipeline, TextualInversionLoaderMixin):
                     pred = pred.to(dtype=latents.dtype, device=latents.device)
                     noise_pred[:, :, context] = noise_pred[:, :, context] + pred
                     counter[:, :, context] = counter[:, :, context] + 1
-                    progress_bar.update()
 
                 # perform guidance
                 noise_size = prompt_encoder.get_condi_size()
@@ -3072,7 +3084,7 @@ class AnimationPipeline(DiffusionPipeline, TextualInversionLoaderMixin):
                 ):
                     denoised = latents - noise_pred
                     denoised = self.interpolate_latents(denoised, interpolation_factor, device)
-                    video = torch.from_numpy(self.decode_latents(denoised))
+                    video = torch.from_numpy(self.decode_latents(denoised, progress_bar=progress_bar))
                     callback(i, video)
 
                 # compute the previous noisy sample x_t -> x_t-1
@@ -3116,6 +3128,7 @@ class AnimationPipeline(DiffusionPipeline, TextualInversionLoaderMixin):
                 tmp_latent = None
 
                 stopwatch_stop("LOOP end")
+                progress_bar.update()
 
         controlnet_result = None
         torch.cuda.empty_cache()
@@ -3154,7 +3167,7 @@ class AnimationPipeline(DiffusionPipeline, TextualInversionLoaderMixin):
 
         return AnimationPipelineOutput(videos=video)
 
-    def progress_bar(self, iterable=None, total=None):
+    def progress_bar(self, iterable=None, total=None, desc=None):
         if not hasattr(self, "_progress_bar_config"):
             self._progress_bar_config = {}
         elif not isinstance(self._progress_bar_config, dict):
@@ -3163,9 +3176,9 @@ class AnimationPipeline(DiffusionPipeline, TextualInversionLoaderMixin):
             )
 
         if iterable is not None:
-            return tqdm(iterable, **self._progress_bar_config)
+            return tqdm(iterable, desc=desc, **self._progress_bar_config)
         elif total is not None:
-            return tqdm(total=total, **self._progress_bar_config)
+            return tqdm(total=total, desc=desc, **self._progress_bar_config)
         else:
             raise ValueError("Either `total` or `iterable` has to be defined.")
 

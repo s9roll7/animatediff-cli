@@ -1383,7 +1383,6 @@ def save_output(
 
         out_file = out_file.with_suffix( f".{codec_extn(output_format)}" )
 
-        logger.info("Creating ffmpeg encoder...")
         encoder = FfmpegEncoder(
             frames_dir=frame_dir,
             out_file=out_file,
@@ -1393,7 +1392,6 @@ def save_output(
             lossless=False,
             param= output_map["encode_param"] if "encode_param" in output_map else {}
         )
-        logger.info("Encoding interpolated frames with ffmpeg...")
         result = encoder.encode()
         logger.debug(f"ffmpeg result: {result}")
 
@@ -1453,9 +1451,6 @@ def run_inference(
     callback = partial(preview_callback, save_fn=save_fn, out_file=out_file)
 
     seed_everything(seed)
-
-    logger.info(f"{len( region_condi_list )=}")
-    logger.info(f"{len( region_list )=}")
 
     pipeline_output = pipeline(
         negative_prompt=n_prompt,
