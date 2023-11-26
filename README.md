@@ -157,13 +157,18 @@ Same as the original animatediff-cli
 ```sh
 git clone https://github.com/s9roll7/animatediff-cli-prompt-travel.git
 cd animatediff-cli-prompt-travel
-py -3.10 -m venv venv
+
+python -m venv venv
 venv\Scripts\activate.bat
 set PYTHONUTF8=1
+
 python -m pip install --upgrade pip
-# Torch installation must be modified to suit the environment. (https://pytorch.org/get-started/locally/)
-python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 python -m pip install -e .
+pip install --force-reinstall -v "transformers==4.30.2"
+
+# Torch installation must be modified to suit the environment. (https://pytorch.org/get-started/locally/)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+python -m pip install onnxruntime-gpu pandas
 
 # If you want to use the 'stylize' command, you will also need
 python -m pip install -e .[stylize]
