@@ -1040,7 +1040,7 @@ def controlnet_preprocess(
                     save_path = det_dir.joinpath(f"{org_name}.png")
                     ref_image.save(save_path)
 
-    controlnet_no_shrink = ["controlnet_tile","animatediff_controlnet","controlnet_canny","controlnet_depth","controlnet_lineart","controlnet_lineart_anime","controlnet_scribble","controlnet_seg","controlnet_softedge","controlnet_mlsd"]
+    controlnet_no_shrink = ["controlnet_tile","animatediff_controlnet","controlnet_canny","controlnet_normalbae","controlnet_depth","controlnet_lineart","controlnet_lineart_anime","controlnet_scribble","controlnet_seg","controlnet_softedge","controlnet_mlsd"]
     if "no_shrink_list" in controlnet_map:
         controlnet_no_shrink = controlnet_map["no_shrink_list"]
 
