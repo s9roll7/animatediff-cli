@@ -239,3 +239,9 @@ src/animatediff/_version.py
 # envrc
 .env*
 !.envrc.example
+
+# Cog
+output.gif
+output.mp4
+nb.ipynb
+.cog/

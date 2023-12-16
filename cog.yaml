@@ -1,0 +1,69 @@
+# Configuration for Cog ⚙️
+# Reference: https://github.com/replicate/cog/blob/main/docs/yaml.md
+
+build:
+  # set to true if your model requires a GPU
+  gpu: true
+
+  # a list of ubuntu apt packages to install
+  system_packages:
+    - "libgl1-mesa-glx"
+  #   - "libglib2.0-0"
+
+  # python version in the form '3.10'
+  python_version: "3.10"
+
+  # a list of packages in the format <package-name>==<version>
+  python_packages:
+    - "torch==2.0.1"
+    - "torchvision==0.15.2"
+    - "torchaudio==2.0.2"
+    - "accelerate>=0.20.3"
+    - "colorama>=0.4.3,<0.5.0"
+    - "cmake>=3.25.0"
+    - "diffusers==0.18.2"
+    - "einops>=0.6.1"
+    - "gdown>=4.6.6"
+    - "ninja>=1.11.0"
+    - "numpy>=1.22.4"
+    - "omegaconf>=2.3.0"
+    - "pillow>=9.4.0,<10.0.0"
+    - "pydantic>=1.10.0,<2.0.0"
+    - "rich>=13.0.0,<14.0.0"
+    - "safetensors>=0.3.1"
+    - "sentencepiece>=0.1.99"
+    - "shellingham>=1.5.0,<2.0.0"
+    - "torch>=2.0.0,<2.2.0"
+    - "torchaudio"
+    - "torchvision"
+    - "transformers>=4.30.2"
+    - "typer>=0.9.0,<1.0.0"
+    - "controlnet_aux"
+    - "matplotlib"
+    - "ffmpeg-python>=0.2.0"
+    - "black>=22.3.0"
+    - "ruff>=0.0.234"
+    - "setuptools-scm>=7.0.0"
+    - "pre-commit>=3.3.0"
+    - "ipython"
+    - "xformers>=0.0.21"
+    - "onnxruntime-gpu"
+    - "pandas"
+    - "segment-anything-hq==0.3"
+    - "groundingdino-py==0.4.0"
+    - "gitpython"
+    - "mediapipe"
+    - "xformers"
+    - "git+https://github.com/s9roll7/animatediff-cli-prompt-travel.git"
+    - "git+https://github.com/s9roll7/animatediff-cli-prompt-travel.git#egg=animatediff[stylize]"
+    - "git+https://github.com/s9roll7/animatediff-cli-prompt-travel.git#egg=animatediff[dwpose]"
+    - "git+https://github.com/s9roll7/animatediff-cli-prompt-travel.git#egg=animatediff[stylize_mask]"
+
+  run:
+    - pip install --upgrade pip
+    - apt-get update && apt-get install -y ffmpeg
+    - pip install imageio[ffmpeg]
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget" && chmod +x /usr/local/bin/pget
+
+# predict.py defines how predictions are run on your model
+predict: "predict.py:Predictor"

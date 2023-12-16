@@ -2,6 +2,8 @@
 
 [AnimateDiff](https://github.com/guoyww/AnimateDiff) with prompt travel + [ControlNet](https://github.com/lllyasviel/ControlNet) + [IP-Adapter](https://github.com/tencent-ailab/IP-Adapter)
 
+[![Replicate](https://replicate.com/zsxkib/animatediff-prompt-travel/badge)](https://replicate.com/zsxkib/animatediff-prompt-travel)
+
 I added a experimental feature to animatediff-cli to change the prompt in the middle of the frame.
 
 It seems to work surprisingly well!
